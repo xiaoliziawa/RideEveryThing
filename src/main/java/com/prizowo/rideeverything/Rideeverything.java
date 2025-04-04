@@ -1,5 +1,6 @@
 package com.prizowo.rideeverything;
 
+import com.prizowo.rideeverything.events.MountControlEvents;
 import com.prizowo.rideeverything.init.ModEntities;
 import com.prizowo.rideeverything.network.NetworkHandler;
 import net.minecraftforge.common.MinecraftForge;
@@ -16,5 +17,6 @@ public class Rideeverything {
         NetworkHandler.init();
         
         MinecraftForge.EVENT_BUS.register(this);
+        MinecraftForge.EVENT_BUS.register(new MountControlEvents());
     }
 }
