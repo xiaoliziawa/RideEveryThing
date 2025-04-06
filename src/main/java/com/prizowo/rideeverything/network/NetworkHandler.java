@@ -36,5 +36,12 @@ public class NetworkHandler {
             CreateBlockSeatPacket::decode,
             CreateBlockSeatPacket::handle
         );
+        INSTANCE.registerMessage(
+            id++,
+            MountControlPacket.class,
+            MountControlPacket::encode,
+            MountControlPacket::decode,
+            MountControlPacket::handle
+        );
     }
 }
