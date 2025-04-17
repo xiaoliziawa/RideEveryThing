@@ -13,12 +13,14 @@ public class MountControlPacket {
     private final boolean descending;
     private final float forward;
     private final float strafe;
+    private final boolean sprinting;
 
-    public MountControlPacket(boolean jumping, boolean descending, float forward, float strafe) {
+    public MountControlPacket(boolean jumping, boolean descending, float forward, float strafe, boolean sprinting) {
         this.jumping = jumping;
         this.descending = descending;
         this.forward = forward;
         this.strafe = strafe;
+        this.sprinting = sprinting;
     }
 
     public static void encode(MountControlPacket packet, FriendlyByteBuf buf) {
@@ -26,6 +28,7 @@ public class MountControlPacket {
         buf.writeBoolean(packet.descending);
         buf.writeFloat(packet.forward);
         buf.writeFloat(packet.strafe);
+        buf.writeBoolean(packet.sprinting);
     }
 
     public static MountControlPacket decode(FriendlyByteBuf buf) {
@@ -33,7 +36,8 @@ public class MountControlPacket {
                 buf.readBoolean(),
                 buf.readBoolean(),
                 buf.readFloat(),
-                buf.readFloat()
+                buf.readFloat(),
+                buf.readBoolean()
         );
     }
 
@@ -48,6 +52,7 @@ public class MountControlPacket {
                     player.getPersistentData().putBoolean("mounting_descending", packet.descending);
                     player.getPersistentData().putFloat("mounting_forward", packet.forward);
                     player.getPersistentData().putFloat("mounting_strafe", packet.strafe);
+                    player.getPersistentData().putBoolean("mounting_sprinting", packet.sprinting);
                 }
             }
         });

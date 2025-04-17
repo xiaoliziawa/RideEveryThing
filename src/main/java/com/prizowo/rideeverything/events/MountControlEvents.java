@@ -17,6 +17,8 @@ import java.util.Map;
 @Mod.EventBusSubscriber(modid = "rideeverything")
 public class MountControlEvents {
     private static final Map<Class<?>, Boolean> flyingEntityCache = new HashMap<>();
+    
+    private static final double SPRINT_SPEED_MULTIPLIER = 1.3;
 
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
@@ -30,20 +32,21 @@ public class MountControlEvents {
                     boolean descending = player.getPersistentData().getBoolean("mounting_descending");
                     float forward = player.getPersistentData().getFloat("mounting_forward");
                     float strafe = player.getPersistentData().getFloat("mounting_strafe");
+                    boolean sprinting = player.getPersistentData().getBoolean("mounting_sprinting");
 
                     boolean isFlying = isFlying(mt);
                     
                     if (isFlying) {
-                        handleFlyingMobControl(mt, player, jumping, descending, forward, strafe);
+                        handleFlyingMobControl(mt, player, jumping, descending, forward, strafe, sprinting);
                     } else {
-                        handleGroundMobControl(mt, player, jumping, forward, strafe);
+                        handleGroundMobControl(mt, player, jumping, forward, strafe, sprinting);
                     }
                 }
             }
         }
     }
     
-    private static void handleFlyingMobControl(Mob mob, Player player, boolean jumping, boolean descending, float forward, float strafe) {
+    private static void handleFlyingMobControl(Mob mob, Player player, boolean jumping, boolean descending, float forward, float strafe, boolean isSprinting) {
         mob.setYRot(player.getYRot());
         mob.yRotO = mob.getYRot();
         mob.setYBodyRot(mob.getYRot());
@@ -61,6 +64,10 @@ public class MountControlEvents {
         }
         
         double horizontalSpeed = 0.35;
+        
+        if (isSprinting && forward > 0) {
+            horizontalSpeed *= SPRINT_SPEED_MULTIPLIER;
+        }
         
         float yaw = player.getYRot();
         double rad = Math.toRadians(yaw);
@@ -87,7 +94,7 @@ public class MountControlEvents {
         mob.setNoGravity(true);
     }
     
-    private static void handleGroundMobControl(Mob mob, Player player, boolean jumping, float forward, float strafe) {
+    private static void handleGroundMobControl(Mob mob, Player player, boolean jumping, float forward, float strafe, boolean isSprinting) {
         if (jumping && mob.onGround()) {
             double jumpPower = 0.5;
             
@@ -114,6 +121,10 @@ public class MountControlEvents {
             double rad = Math.toRadians(yaw);
             double speed = mob.getSpeed() * 0.5;
             
+            if (isSprinting && forward > 0) {
+                speed *= SPRINT_SPEED_MULTIPLIER;
+            }
+            
             double motionX = -Math.sin(rad) * forward * speed;
             double motionZ = Math.cos(rad) * forward * speed;
             
@@ -130,7 +141,7 @@ public class MountControlEvents {
             mob.hasImpulse = true;
         }
     }
-
+    
 
     private static boolean isFlying(Mob mob) {
         Class<?> mobClass = mob.getClass();
@@ -164,40 +175,7 @@ public class MountControlEvents {
             type == EntityType.WITHER) {
             result = true;
         }
-        // Method 3: Check if already flying (not on ground with positive Y motion)
-        else if (!mob.onGround() && mob.getDeltaMovement().y >= 0) {
-            result = true;
-        }
-        // Method 4: Name-based heuristic detection for modded entities
-        else {
-            try {
-                String mobClassName = mob.getClass().getName().toLowerCase();
-                if (mobClassName.contains("fly") || 
-                    mobClassName.contains("wing") ||
-                    mobClassName.contains("dragon") ||
-                    mobClassName.contains("bird") ||
-                    mobClassName.contains("insect") ||
-                    mobClassName.contains("angel") ||
-                    mobClassName.contains("air")) {
-                    result = true;
-                }
-                
-                // Method 5: Check gravity property
-                if (mob.isNoGravity()) {
-                    result = true;
-                }
-
-                // Method 6: Check navigation AI type
-                mob.getNavigation();
-                if (mob.getNavigation().getClass().getName().toLowerCase().contains("fly")) {
-                    result = true;
-                }
-            } catch (Exception e) {
-                // Ignore exceptions
-            }
-        }
         
-        // Cache result for performance
         flyingEntityCache.put(mobClass, result);
         return result;
     }
