@@ -14,5 +14,7 @@ public class ModEntities {
     public static final Supplier<EntityType<BlockSeatEntity>> BLOCK_SEAT = ENTITIES.register("block_seat",
             () -> EntityType.Builder.of(BlockSeatEntity::new, MobCategory.MISC)
                     .sized(0.0f, 0.0f)
+                    .clientTrackingRange(10)
+                    .updateInterval(3)
                     .build("block_seat"));
 }

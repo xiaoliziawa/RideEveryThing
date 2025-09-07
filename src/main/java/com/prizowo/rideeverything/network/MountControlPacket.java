@@ -31,12 +31,15 @@ public record MountControlPacket(boolean jumping, boolean descending, float forw
     
     public static void handle(MountControlPacket packet, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
-            if (ctx.player() instanceof ServerPlayer player) {
-                player.getPersistentData().putBoolean("mounting_jumping", packet.jumping());
-                player.getPersistentData().putBoolean("mounting_descending", packet.descending());
-                player.getPersistentData().putFloat("mounting_forward", packet.forward());
-                player.getPersistentData().putFloat("mounting_strafe", packet.strafe());
-                player.getPersistentData().putBoolean("mounting_sprinting", packet.sprinting());
+            if (ctx.player() instanceof ServerPlayer player && player.isPassenger()) {
+                var vehicle = player.getVehicle();
+                if (vehicle instanceof net.minecraft.world.entity.Mob) {
+                    player.getPersistentData().putBoolean("mounting_jumping", packet.jumping());
+                    player.getPersistentData().putBoolean("mounting_descending", packet.descending());
+                    player.getPersistentData().putFloat("mounting_forward", packet.forward());
+                    player.getPersistentData().putFloat("mounting_strafe", packet.strafe());
+                    player.getPersistentData().putBoolean("mounting_sprinting", packet.sprinting());
+                }
             }
         });
     }

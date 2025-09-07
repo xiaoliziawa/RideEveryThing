@@ -5,6 +5,8 @@ import com.prizowo.rideeverything.network.MountControlPacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.animal.horse.AbstractHorse;
+import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -29,7 +31,7 @@ public class ClientMountControlEvents {
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
         
-        if (player != null && player.isPassenger() && player.getVehicle() instanceof Mob) {
+        if (player != null && player.isPassenger() && player.getVehicle() instanceof Mob && !(player.getVehicle() instanceof AbstractHorse)) {
             boolean jumping = minecraft.options.keyJump.isDown();
             boolean descending = KeyBindings.KEY_DESCEND.isDown();
             float forward = player.zza;
@@ -70,4 +72,4 @@ public class ClientMountControlEvents {
             isSprinting = false;
         }
     }
-} 
+}

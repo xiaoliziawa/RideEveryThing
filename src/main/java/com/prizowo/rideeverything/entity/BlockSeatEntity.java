@@ -23,6 +23,7 @@ public class BlockSeatEntity extends Entity {
         super(type, level);
         this.noPhysics = true;
         this.setInvisible(true);
+        this.noCulling = true;
     }
 
     public void setAttachedBlock(BlockPos pos) {
@@ -51,13 +52,29 @@ public class BlockSeatEntity extends Entity {
             tag.putInt("AttachedBlockZ", attachedBlock.getZ());
         }
     }
+    
+    @Override
+    public boolean shouldRenderAtSqrDistance(double distance) {
+        return distance < 4096.0D; // 增加渲染距离
+    }
+    
+    @Override
+    public boolean isAlwaysTicking() {
+        return true; // 确保实体始终 tick
+    }
 
     @Override
     public void tick() {
         super.tick();
         
-        if (!this.isVehicle() || (attachedBlock != null && !isBlockValid())) {
+        // 只有在方块无效时才移除实体，不检查是否有乘客（避免时序问题）
+        if (attachedBlock != null && !isBlockValid()) {
             this.ejectPassengers();
+            this.discard();
+        }
+        
+        // 如果没有乘客且实体存在时间超过 100 ticks（5秒），则移除（避免孤儿实体）
+        if (!this.isVehicle() && this.tickCount > 100) {
             this.discard();
         }
     }
@@ -86,23 +103,22 @@ public class BlockSeatEntity extends Entity {
     protected @NotNull Vec3 getPassengerAttachmentPoint(@NotNull Entity entity, @NotNull EntityDimensions dimensions, float partialTick) {
         if (attachedBlock != null) {
             BlockState state = level().getBlockState(attachedBlock);
-            double yOffset = 0.4D;
+            double yOffset = 0.8D;
             
-            // 处理楼梯
             if (state.getBlock() instanceof StairBlock) {
-                yOffset = state.getValue(StairBlock.HALF) == Half.TOP ? 1.2D : 0.5D;
+                yOffset = state.getValue(StairBlock.HALF) == Half.TOP ? 0.8D : 0.3D;
             }
             
-            // 处理台阶
             if (state.getBlock() instanceof SlabBlock) {
                 SlabType slabType = state.getValue(SlabBlock.TYPE);
                 yOffset = switch (slabType) {
-                    case TOP, DOUBLE -> 1.2D;
-                    case BOTTOM -> 0.5D;
+                    case TOP -> 0.8D;
+                    case BOTTOM -> 0.3D;
+                    case DOUBLE -> 0.8D;
                 };
             }
             
-            return new Vec3(0, yOffset - dimensions.height(), 0);
+            return new Vec3(0, yOffset, 0);
         }
         return super.getPassengerAttachmentPoint(entity, dimensions, partialTick);
     }
@@ -112,15 +128,15 @@ public class BlockSeatEntity extends Entity {
         super.addPassenger(passenger);
         if (attachedBlock != null) {
             BlockState state = level().getBlockState(attachedBlock);
-            double yOffset = attachedBlock.getY() + 0.4;
+            double yOffset = attachedBlock.getY() + 1.8; // 默认高度
             
             // 处理楼梯
             if (state.getBlock() instanceof StairBlock) {
                 yOffset = state.getValue(StairBlock.HALF) == Half.TOP ? 
-                         attachedBlock.getY() + 1.1 :
-                         attachedBlock.getY() + 0.5;
+                         attachedBlock.getY() + 1.8 : // TOP 楼梯
+                         attachedBlock.getY() + 0.8;  // BOTTOM 楼梯，坐在一半高度
                          
-                double horizontalOffset = 0.25; // 减小水平偏移量
+                double horizontalOffset = 0.25;
                 switch(state.getValue(StairBlock.FACING)) {
                     case NORTH -> passenger.setPos(
                         attachedBlock.getX() + 0.5,
@@ -150,8 +166,9 @@ public class BlockSeatEntity extends Entity {
             if (state.getBlock() instanceof SlabBlock) {
                 SlabType slabType = state.getValue(SlabBlock.TYPE);
                 yOffset = switch (slabType) {
-                    case TOP, DOUBLE -> attachedBlock.getY() + 1.1;
-                    case BOTTOM -> attachedBlock.getY() + 0.5;
+                    case TOP -> attachedBlock.getY() + 1.8;    // 上台阶
+                    case BOTTOM -> attachedBlock.getY() + 0.8; // 下台阶，坐在一半高度
+                    case DOUBLE -> attachedBlock.getY() + 1.8; // 双台阶
                 };
             }
             
@@ -166,29 +183,122 @@ public class BlockSeatEntity extends Entity {
     @Override
     protected void removePassenger(@NotNull Entity passenger) {
         if (attachedBlock != null) {
-            BlockState state = level().getBlockState(attachedBlock);
-            double yOffset = attachedBlock.getY() + 1.0;
-            
-            // 根据方块类型调整下车位置
-            if (state.getBlock() instanceof StairBlock || state.getBlock() instanceof SlabBlock) {
-                yOffset = attachedBlock.getY() + 1.0;
-            }
-            
-            // 计算水平偏移
-            double offsetX;
-            double offsetZ;
-            float passengerYRot = passenger.getYRot();
-            float angle = (float) Math.toRadians(passengerYRot);
-            double horizontalOffset = 1.0;
-            offsetX = -Math.sin(angle) * horizontalOffset;
-            offsetZ = Math.cos(angle) * horizontalOffset;
-            
-            passenger.setPos(
-                attachedBlock.getX() + 0.5 + offsetX,
-                yOffset,
-                attachedBlock.getZ() + 0.5 + offsetZ
-            );
+            Vec3 safePos = findSafeDismountPosition(passenger);
+            passenger.setPos(safePos.x, safePos.y, safePos.z);
         }
         super.removePassenger(passenger);
+    }
+    
+    @Override
+    public void ejectPassengers() {
+        for (Entity passenger : getPassengers()) {
+            if (attachedBlock != null) {
+                Vec3 safePos = findSafeDismountPosition(passenger);
+                passenger.setPos(safePos.x, safePos.y, safePos.z);
+            }
+        }
+        super.ejectPassengers();
+    }
+    
+    @Override
+    public @NotNull Vec3 getDismountLocationForPassenger(@NotNull net.minecraft.world.entity.LivingEntity passenger) {
+        if (attachedBlock != null) {
+            return findSafeDismountPosition(passenger);
+        }
+        return super.getDismountLocationForPassenger(passenger);
+    }
+
+    private Vec3 findSafeDismountPosition(Entity passenger) {
+        BlockState state = level().getBlockState(attachedBlock);
+        double baseY = attachedBlock.getY() + 1.0;
+        
+        if (state.getBlock() instanceof StairBlock) {
+            Half half = state.getValue(StairBlock.HALF);
+            baseY = half == Half.TOP ? attachedBlock.getY() + 1.0 : attachedBlock.getY() + 0.5;
+        } else if (state.getBlock() instanceof SlabBlock) {
+            SlabType slabType = state.getValue(SlabBlock.TYPE);
+            baseY = switch (slabType) {
+                case TOP -> attachedBlock.getY() + 1.0;
+                case BOTTOM -> attachedBlock.getY() + 0.5;
+                case DOUBLE -> attachedBlock.getY() + 1.0;
+            };
+        }
+        float yRot = passenger.getYRot();
+        double radians = Math.toRadians(yRot);
+        double frontX = -Math.sin(radians) * 2.0;
+        double frontZ = Math.cos(radians) * 2.0;
+        Vec3 frontPos = new Vec3(
+                attachedBlock.getX() + 0.5 + frontX,
+                baseY,
+                attachedBlock.getZ() + 0.5 + frontZ
+        );
+        if (isSafePosition(frontPos, passenger)) {
+            return frontPos;
+        }
+        
+        double[] distances = {2.0, 2.5, 3.0};
+        double[] angles = {0, 45, 90, 135, 180, 225, 270, 315};
+        for (double distance : distances) {
+            for (double angle : angles) {
+                double angleRad = Math.toRadians(angle);
+                double xOffset = Math.sin(angleRad) * distance;
+                double zOffset = Math.cos(angleRad) * distance;
+                Vec3 testPos = new Vec3(
+                        attachedBlock.getX() + 0.5 + xOffset,
+                        baseY,
+                        attachedBlock.getZ() + 0.5 + zOffset
+                );
+
+                if (isSafePosition(testPos, passenger)) {
+                    return testPos;
+                }
+            }
+        }
+        
+        for (int i = 1; i <= 5; i++) {
+            Vec3 highPos = new Vec3(
+                attachedBlock.getX() + 0.5, 
+                baseY + i, 
+                attachedBlock.getZ() + 0.5
+            );
+            if (isSafePosition(highPos, passenger)) {
+                return highPos;
+            }
+        }
+        
+        return new Vec3(attachedBlock.getX() + 0.5, baseY, attachedBlock.getZ() + 0.5);
+    }
+
+    private boolean isSafePosition(Vec3 pos, Entity passenger) {
+        BlockPos feetPos = new BlockPos((int) Math.floor(pos.x), (int) Math.floor(pos.y), (int) Math.floor(pos.z));
+        BlockPos headPos = feetPos.above();
+        BlockPos belowPos = feetPos.below();
+        
+        BlockState belowState = level().getBlockState(belowPos);
+        if (belowState.isAir()) {
+            return false;
+        }
+        
+        BlockState feetState = level().getBlockState(feetPos);
+        if (!feetState.isAir() && feetState.canOcclude()) {
+            return false;
+        }
+        
+        BlockState headState = level().getBlockState(headPos);
+        if (!headState.isAir() && headState.canOcclude()) {
+            return false;
+        }
+        
+        double minX = feetPos.getX();
+        double maxX = feetPos.getX() + 1.0;
+        double minZ = feetPos.getZ();
+        double maxZ = feetPos.getZ() + 1.0;
+        
+        if (pos.x <= minX + 0.3 || pos.x >= maxX - 0.3 ||
+            pos.z <= minZ + 0.3 || pos.z >= maxZ - 0.3) {
+            return !feetState.canOcclude();
+        }
+        
+        return true;
     }
 }

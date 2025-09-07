@@ -8,6 +8,11 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.StairBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Half;
+import net.minecraft.world.level.block.state.properties.SlabType;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,11 +33,28 @@ public record CreateBlockSeatPacket(BlockPos pos) implements CustomPacketPayload
                 }
 
                 BlockSeatEntity seat = new BlockSeatEntity(ModEntities.BLOCK_SEAT.get(), player.level());
-                seat.setPos(packet.pos().getX() + 0.5, packet.pos().getY() + 0.5, packet.pos().getZ() + 0.5);
+                
+                BlockState state = player.level().getBlockState(packet.pos());
+                double entityY = packet.pos().getY() + 1.0;
+                
+                if (state.getBlock() instanceof StairBlock) {
+                    entityY = state.getValue(StairBlock.HALF) == Half.TOP ?
+                        packet.pos().getY() + 1.0 : packet.pos().getY() + 0.5;
+                } else if (state.getBlock() instanceof SlabBlock) {
+                    SlabType slabType = state.getValue(SlabBlock.TYPE);
+                    entityY = switch (slabType) {
+                        case TOP -> packet.pos().getY() + 1.0;
+                        case BOTTOM -> packet.pos().getY() + 0.5;
+                        case DOUBLE -> packet.pos().getY() + 1.0;
+                    };
+                }
+                
+                seat.setPos(packet.pos().getX() + 0.5, entityY, packet.pos().getZ() + 0.5);
                 seat.setAttachedBlock(packet.pos());
 
-                player.level().addFreshEntity(seat);
-                player.startRiding(seat, true);
+                if (player.level().addFreshEntity(seat)) {
+                    player.startRiding(seat, true);
+                }
             }
         });
     }
