@@ -47,7 +47,6 @@ public class MountControlPacket {
             if (player != null && player.isPassenger()) {
                 Entity vehicle = player.getVehicle();
                 if (vehicle instanceof Mob) {
-                    // 这些数据将在服务器端的MountControlEvents中使用
                     player.getPersistentData().putBoolean("mounting_jumping", packet.jumping);
                     player.getPersistentData().putBoolean("mounting_descending", packet.descending);
                     player.getPersistentData().putFloat("mounting_forward", packet.forward);
@@ -58,4 +57,4 @@ public class MountControlPacket {
         });
         ctx.get().setPacketHandled(true);
     }
-} 
+}

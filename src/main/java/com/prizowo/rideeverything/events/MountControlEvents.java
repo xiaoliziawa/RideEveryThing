@@ -5,6 +5,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.FlyingAnimal;
+import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
@@ -27,7 +28,7 @@ public class MountControlEvents {
 
             if (player.isPassenger()) {
                 Entity et = player.getVehicle();
-                if (et instanceof Mob mt) {
+                if (et instanceof Mob mt && !(mt instanceof AbstractHorse)) {
                     boolean jumping = player.getPersistentData().getBoolean("mounting_jumping");
                     boolean descending = player.getPersistentData().getBoolean("mounting_descending");
                     float forward = player.getPersistentData().getFloat("mounting_forward");
@@ -119,7 +120,7 @@ public class MountControlEvents {
             
             float yaw = player.getYRot();
             double rad = Math.toRadians(yaw);
-            double speed = mob.getSpeed() * 0.5;
+            double speed = mob.getSpeed();
             
             if (isSprinting && forward > 0) {
                 speed *= SPRINT_SPEED_MULTIPLIER;
@@ -132,9 +133,9 @@ public class MountControlEvents {
             motionZ += Math.sin(rad) * strafe * speed;
             
             Vec3 newVelocity = new Vec3(
-                currentVelocity.x + (motionX - currentVelocity.x) * 0.5,
+                motionX,
                 currentVelocity.y,
-                currentVelocity.z + (motionZ - currentVelocity.z) * 0.5
+                motionZ
             );
             
             mob.setDeltaMovement(newVelocity);

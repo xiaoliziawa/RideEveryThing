@@ -7,6 +7,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -68,7 +69,7 @@ public class RidePacket {
                 
                 if (msg.isEntityInteraction) {
                     Entity target = level.getEntity(msg.entityId);
-                    if (target != null) {
+                    if (target != null && !(target instanceof AbstractHorse)) {
                         if (msg.isMount) {
                             boolean success = player.startRiding(target, true);
                             if (success) {
