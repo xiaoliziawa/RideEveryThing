@@ -1,6 +1,5 @@
 package com.prizowo.rideeverything.util;
 
-import com.prizowo.rideeverything.network.NetworkHandler;
 import com.prizowo.rideeverything.network.RidePacket;
 import com.prizowo.rideeverything.network.CreateBlockSeatPacket;
 import net.minecraft.client.Minecraft;

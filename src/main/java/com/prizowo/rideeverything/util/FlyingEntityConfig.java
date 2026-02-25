@@ -42,12 +42,12 @@ public class FlyingEntityConfig {
         ADDITIONAL_FLYING_ENTITIES = BUILDER
                 .comment("Additional flying entity types, format: 'modid:entity_name'")
                 .worldRestart()
-                .defineList("additional_flying_entities", new ArrayList<>(), obj -> obj instanceof String);
+                .defineListAllowEmpty("additional_flying_entities", new ArrayList<>(), () -> "", obj -> obj instanceof String);
 
         EXCLUDED_FLYING_ENTITIES = BUILDER
                 .comment("Excluded entity types, format: 'modid:entity_name' (can override default behavior)")
                 .worldRestart()
-                .defineList("excluded_flying_entities", new ArrayList<>(), obj -> obj instanceof String);
+                .defineListAllowEmpty("excluded_flying_entities", new ArrayList<>(), () -> "", obj -> obj instanceof String);
 
         BUILDER.pop();
 
@@ -63,11 +63,11 @@ public class FlyingEntityConfig {
 
         ENTITY_BLACKLIST = BUILDER
                 .comment("Entity types that cannot be ridden, format: 'modid:entity_name'")
-                .defineList("entity_blacklist", new ArrayList<>(), obj -> obj instanceof String);
+                .defineListAllowEmpty("entity_blacklist", new ArrayList<>(), () -> "", obj -> obj instanceof String);
 
         BLOCK_BLACKLIST = BUILDER
                 .comment("Block types that cannot be sat on, format: 'modid:block_name'")
-                .defineList("block_blacklist", new ArrayList<>(), obj -> obj instanceof String);
+                .defineListAllowEmpty("block_blacklist", new ArrayList<>(), () -> "", obj -> obj instanceof String);
 
         BUILDER.pop();
         SPEC = BUILDER.build();
