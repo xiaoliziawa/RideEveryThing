@@ -20,28 +20,28 @@ public class RideHandler {
         if (player == null) return;
 
         Entity target = mc.crosshairPickEntity;
-        
+
         if (target != null && !player.isPassenger()) {
             if (target instanceof Player targetPlayer) {
                 if (targetPlayer == player) return;
             }
-            
+
             NetworkHandler.INSTANCE.sendToServer(new RidePacket(target.getId(), true));
         } else {
             HitResult hit = mc.hitResult;
             if (hit != null && hit.getType() == HitResult.Type.BLOCK) {
                 BlockHitResult blockHit = (BlockHitResult) hit;
                 BlockPos pos = blockHit.getBlockPos();
-                
+
                 NetworkHandler.INSTANCE.sendToServer(new CreateBlockSeatPacket(pos));
             }
         }
     }
-    
+
     public static void handleDismountKey() {
         Player player = Minecraft.getInstance().player;
         if (player == null) return;
-        
+
         if (player.isPassenger()) {
             Entity vehicle = player.getVehicle();
             if (vehicle != null) {

@@ -14,15 +14,15 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 public class Rideeverything {
     public Rideeverything() {
         IEventBus eventBus = FMLJavaModLoadingContext.get().getModEventBus();
-        
+
         ModEntities.ENTITIES.register(eventBus);
         NetworkHandler.init();
-        
+
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(new MountControlEvents());
-        
+
         FlyingEntityConfig.register();
-        
+
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
     }
 

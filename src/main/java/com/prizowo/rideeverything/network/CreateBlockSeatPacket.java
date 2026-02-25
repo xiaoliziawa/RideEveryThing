@@ -2,9 +2,11 @@ package com.prizowo.rideeverything.network;
 
 import com.prizowo.rideeverything.entity.BlockSeatEntity;
 import com.prizowo.rideeverything.init.ModEntities;
+import com.prizowo.rideeverything.util.FlyingEntityConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
@@ -28,7 +30,16 @@ public class CreateBlockSeatPacket {
         ctx.get().enqueueWork(() -> {
             ServerPlayer player = ctx.get().getSender();
             if (player != null && player.level() != null) {
+                if (!FlyingEntityConfig.isBlockRidingAllowed()) {
+                    return;
+                }
+
                 if (player.level().getBlockState(msg.pos).isAir()) {
+                    return;
+                }
+
+                BlockState state = player.level().getBlockState(msg.pos);
+                if (FlyingEntityConfig.isBlockBlacklisted(state)) {
                     return;
                 }
 

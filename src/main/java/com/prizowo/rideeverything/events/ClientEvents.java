@@ -15,7 +15,7 @@ public class ClientEvents {
             if (KeyBindings.RIDE_KEY.consumeClick()) {
                 RideHandler.handleRideKey();
             }
-            
+
             if (KeyBindings.DISMOUNT_KEY.consumeClick()) {
                 RideHandler.handleDismountKey();
             }

@@ -111,32 +111,18 @@ public class BlockSeatEntity extends Entity {
 
             // 处理楼梯
             if (state.getBlock() instanceof StairBlock) {
-                yOffset = state.getValue(StairBlock.HALF) == Half.TOP ?
-                        attachedBlock.getY() + 1.1 :
-                        attachedBlock.getY() + 0.5;
+                yOffset = state.getValue(StairBlock.HALF) == Half.TOP ? attachedBlock.getY() + 1.1 : attachedBlock.getY() + 0.5;
 
                 double horizontalOffset = 0.25; // 减小水平偏移量
                 switch (state.getValue(StairBlock.FACING)) {
-                    case NORTH -> passenger.setPos(
-                            attachedBlock.getX() + 0.5,
-                            yOffset,
-                            attachedBlock.getZ() + 0.5 + horizontalOffset
-                    );
-                    case SOUTH -> passenger.setPos(
-                            attachedBlock.getX() + 0.5,
-                            yOffset,
-                            attachedBlock.getZ() + 0.5 - horizontalOffset
-                    );
-                    case EAST -> passenger.setPos(
-                            attachedBlock.getX() + 0.5 - horizontalOffset,
-                            yOffset,
-                            attachedBlock.getZ() + 0.5
-                    );
-                    case WEST -> passenger.setPos(
-                            attachedBlock.getX() + 0.5 + horizontalOffset,
-                            yOffset,
-                            attachedBlock.getZ() + 0.5
-                    );
+                    case NORTH ->
+                            passenger.setPos(attachedBlock.getX() + 0.5, yOffset, attachedBlock.getZ() + 0.5 + horizontalOffset);
+                    case SOUTH ->
+                            passenger.setPos(attachedBlock.getX() + 0.5, yOffset, attachedBlock.getZ() + 0.5 - horizontalOffset);
+                    case EAST ->
+                            passenger.setPos(attachedBlock.getX() + 0.5 - horizontalOffset, yOffset, attachedBlock.getZ() + 0.5);
+                    case WEST ->
+                            passenger.setPos(attachedBlock.getX() + 0.5 + horizontalOffset, yOffset, attachedBlock.getZ() + 0.5);
                 }
                 return;
             }
@@ -150,11 +136,7 @@ public class BlockSeatEntity extends Entity {
                 };
             }
 
-            passenger.setPos(
-                    attachedBlock.getX() + 0.5,
-                    yOffset,
-                    attachedBlock.getZ() + 0.5
-            );
+            passenger.setPos(attachedBlock.getX() + 0.5, yOffset, attachedBlock.getZ() + 0.5);
         }
     }
 
@@ -166,7 +148,7 @@ public class BlockSeatEntity extends Entity {
         }
         super.removePassenger(passenger);
     }
-    
+
     @Override
     public void ejectPassengers() {
         for (Entity passenger : getPassengers()) {
@@ -177,7 +159,7 @@ public class BlockSeatEntity extends Entity {
         }
         super.ejectPassengers();
     }
-    
+
     @Override
     public @NotNull Vec3 getDismountLocationForPassenger(@NotNull net.minecraft.world.entity.LivingEntity passenger) {
         if (attachedBlock != null) {
@@ -203,15 +185,11 @@ public class BlockSeatEntity extends Entity {
         double radians = Math.toRadians(yRot);
         double frontX = -Math.sin(radians) * 1.8;
         double frontZ = Math.cos(radians) * 1.8;
-        Vec3 frontPos = new Vec3(
-                attachedBlock.getX() + 0.5 + frontX,
-                baseY,
-                attachedBlock.getZ() + 0.5 + frontZ
-        );
+        Vec3 frontPos = new Vec3(attachedBlock.getX() + 0.5 + frontX, baseY, attachedBlock.getZ() + 0.5 + frontZ);
         if (isSafePosition(frontPos, passenger)) {
             return frontPos;
         }
-        
+
         double[] distances = {1.5, 2.0, 2.5};
         double[] angles = {0, 45, 90, 135, 180, 225, 270, 315};
         for (double distance : distances) {
@@ -219,11 +197,7 @@ public class BlockSeatEntity extends Entity {
                 double angleRad = Math.toRadians(angle);
                 double xOffset = Math.sin(angleRad) * distance;
                 double zOffset = Math.cos(angleRad) * distance;
-                Vec3 testPos = new Vec3(
-                        attachedBlock.getX() + 0.5 + xOffset,
-                        baseY,
-                        attachedBlock.getZ() + 0.5 + zOffset
-                );
+                Vec3 testPos = new Vec3(attachedBlock.getX() + 0.5 + xOffset, baseY, attachedBlock.getZ() + 0.5 + zOffset);
 
                 if (isSafePosition(testPos, passenger)) {
                     return testPos;
@@ -231,11 +205,7 @@ public class BlockSeatEntity extends Entity {
             }
         }
         for (int i = 1; i <= 3; i++) {
-            Vec3 highPos = new Vec3(
-                attachedBlock.getX() + 0.5, 
-                baseY + i, 
-                attachedBlock.getZ() + 0.5
-            );
+            Vec3 highPos = new Vec3(attachedBlock.getX() + 0.5, baseY + i, attachedBlock.getZ() + 0.5);
             if (isSafePosition(highPos, passenger)) {
                 return highPos;
             }
@@ -263,8 +233,7 @@ public class BlockSeatEntity extends Entity {
         double maxX = feetPos.getX() + 1.0;
         double minZ = feetPos.getZ();
         double maxZ = feetPos.getZ() + 1.0;
-        if (pos.x <= minX + 0.3 || pos.x >= maxX - 0.3 ||
-            pos.z <= minZ + 0.3 || pos.z >= maxZ - 0.3) {
+        if (pos.x <= minX + 0.3 || pos.x >= maxX - 0.3 || pos.z <= minZ + 0.3 || pos.z >= maxZ - 0.3) {
             return !feetState.canOcclude();
         }
         return true;
