@@ -5,6 +5,7 @@ import com.prizowo.rideeverything.network.MountControlPacket;
 import com.prizowo.rideeverything.network.NetworkHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraftforge.api.distmarker.Dist;
@@ -60,6 +61,12 @@ public class ClientMountControlEvents {
                 }
                 if (ascending) {
                     jumpChargeTicks++;
+                    // Play experience orb sound with rising pitch while charging
+                    if (jumpChargeTicks % 3 == 1) {
+                        float chargeProgress = Math.min(1.0F, jumpChargeTicks / 12.0F);
+                        float pitch = 0.5F + chargeProgress * 1.5F;
+                        player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 0.1F, pitch);
+                    }
                 } else if (wasJumpDown) {
                     jumpPower = calculateJumpPower(jumpChargeTicks);
                     jumpChargeTicks = 0;

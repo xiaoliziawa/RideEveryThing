@@ -29,7 +29,7 @@ public class CreateBlockSeatPacket {
     public static void handle(CreateBlockSeatPacket msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
             ServerPlayer player = ctx.get().getSender();
-            if (player != null && player.level() != null) {
+            if (player != null) {
                 if (!FlyingEntityConfig.isBlockRidingAllowed()) {
                     return;
                 }
