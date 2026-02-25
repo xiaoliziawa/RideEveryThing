@@ -2,6 +2,7 @@ package com.prizowo.rideeverything.events;
 
 import com.prizowo.rideeverything.util.FlyingEntityConfig;
 import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -189,7 +190,7 @@ public class MountControlEvents {
         }
 
         if (lengthSq > 1.0F) {
-            float invLength = (float) net.minecraft.util.Mth.fastInvSqrt(lengthSq);
+            float invLength = Mth.invSqrt(lengthSq);
             strafe *= invLength;
             forward *= invLength;
         }

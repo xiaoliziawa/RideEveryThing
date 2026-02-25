@@ -152,6 +152,11 @@ public class BlockSeatEntity extends Entity {
                         yOffset,
                         attachedBlock.getZ() + 0.5
                     );
+                    case UP, DOWN -> passenger.setPos(
+                        attachedBlock.getX() + 0.5,
+                        yOffset,
+                        attachedBlock.getZ() + 0.5
+                    );
                 }
                 return;
             }
