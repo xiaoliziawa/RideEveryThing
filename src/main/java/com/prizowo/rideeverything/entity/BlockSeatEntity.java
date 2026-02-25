@@ -55,25 +55,21 @@ public class BlockSeatEntity extends Entity {
     
     @Override
     public boolean shouldRenderAtSqrDistance(double distance) {
-        return distance < 4096.0D; // 增加渲染距离
+        return distance < 4096.0D;
     }
     
     @Override
     public boolean isAlwaysTicking() {
-        return true; // 确保实体始终 tick
+        return true;
     }
 
     @Override
     public void tick() {
         super.tick();
-        
-        // 只有在方块无效时才移除实体，不检查是否有乘客（避免时序问题）
         if (attachedBlock != null && !isBlockValid()) {
             this.ejectPassengers();
             this.discard();
         }
-        
-        // 如果没有乘客且实体存在时间超过 100 ticks（5秒），则移除（避免孤儿实体）
         if (!this.isVehicle() && this.tickCount > 100) {
             this.discard();
         }
@@ -128,13 +124,11 @@ public class BlockSeatEntity extends Entity {
         super.addPassenger(passenger);
         if (attachedBlock != null) {
             BlockState state = level().getBlockState(attachedBlock);
-            double yOffset = attachedBlock.getY() + 1.8; // 默认高度
-            
-            // 处理楼梯
+            double yOffset = attachedBlock.getY() + 1.8;
             if (state.getBlock() instanceof StairBlock) {
                 yOffset = state.getValue(StairBlock.HALF) == Half.TOP ? 
-                         attachedBlock.getY() + 1.8 : // TOP 楼梯
-                         attachedBlock.getY() + 0.8;  // BOTTOM 楼梯，坐在一半高度
+                         attachedBlock.getY() + 1.8 :
+                         attachedBlock.getY() + 0.8;
                          
                 double horizontalOffset = 0.25;
                 switch(state.getValue(StairBlock.FACING)) {
@@ -162,13 +156,12 @@ public class BlockSeatEntity extends Entity {
                 return;
             }
             
-            // 处理台阶
             if (state.getBlock() instanceof SlabBlock) {
                 SlabType slabType = state.getValue(SlabBlock.TYPE);
                 yOffset = switch (slabType) {
-                    case TOP -> attachedBlock.getY() + 1.8;    // 上台阶
-                    case BOTTOM -> attachedBlock.getY() + 0.8; // 下台阶，坐在一半高度
-                    case DOUBLE -> attachedBlock.getY() + 1.8; // 双台阶
+                    case TOP -> attachedBlock.getY() + 1.8;
+                    case BOTTOM -> attachedBlock.getY() + 0.8;
+                    case DOUBLE -> attachedBlock.getY() + 1.8;
                 };
             }
             

@@ -66,7 +66,6 @@ public record RidePacket(boolean isEntityInteraction, int entityId, boolean isMo
                 if (packet.isEntityInteraction()) {
                     Entity target = level.getEntity(packet.entityId());
                     if (target != null && !(target instanceof AbstractHorse)) {
-                        // Skip entities that already have their own riding system
                         if (target instanceof LivingEntity le && le.getControllingPassenger() != null) {
                             return;
                         }

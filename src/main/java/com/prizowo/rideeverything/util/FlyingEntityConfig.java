@@ -25,13 +25,16 @@ public class FlyingEntityConfig {
     private static final ModConfigSpec.ConfigValue<List<? extends String>> EXCLUDED_FLYING_ENTITIES;
     private static final ModConfigSpec.ConfigValue<List<? extends String>> ENTITY_BLACKLIST;
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCK_BLACKLIST;
-    private static final ModConfigSpec.BooleanValue PLAYER_RIDING_ALLOWED;
-    private static final ModConfigSpec.BooleanValue BLOCK_RIDING_ALLOWED;
+    private static final ModConfigSpec.BooleanValue PLAYER_RIDING_ALLOWED_CONFIG;
+    private static final ModConfigSpec.BooleanValue BLOCK_RIDING_ALLOWED_CONFIG;
 
     private static final Set<EntityType<?>> additionalFlyingEntities = new HashSet<>();
     private static final Set<EntityType<?>> excludedFlyingEntities = new HashSet<>();
     private static final Set<EntityType<?>> entityBlacklist = new HashSet<>();
-    private static final Set<String> blockBlacklist = new HashSet<>();
+    private static final Set<ResourceLocation> blockBlacklist = new HashSet<>();
+
+    private static boolean playerRidingAllowed = true;
+    private static boolean blockRidingAllowed = true;
 
     static {
         BUILDER.comment("RideEverything Flying Entity Configuration").push("flying_entities");
@@ -50,11 +53,11 @@ public class FlyingEntityConfig {
 
         BUILDER.comment("RideEverything General Configuration").push("general");
 
-        PLAYER_RIDING_ALLOWED = BUILDER
+        PLAYER_RIDING_ALLOWED_CONFIG = BUILDER
                 .comment("Allow riding other players")
                 .define("player_riding_allowed", true);
 
-        BLOCK_RIDING_ALLOWED = BUILDER
+        BLOCK_RIDING_ALLOWED_CONFIG = BUILDER
                 .comment("Allow sitting on blocks")
                 .define("block_riding_allowed", true);
 
@@ -118,8 +121,14 @@ public class FlyingEntityConfig {
         }
 
         for (String blockStr : BLOCK_BLACKLIST.get()) {
-            blockBlacklist.add(blockStr);
+            try {
+                blockBlacklist.add(ResourceLocation.parse(blockStr));
+            } catch (Exception e) {
+            }
         }
+
+        playerRidingAllowed = PLAYER_RIDING_ALLOWED_CONFIG.get();
+        blockRidingAllowed = BLOCK_RIDING_ALLOWED_CONFIG.get();
     }
 
     public static boolean isConfiguredAsFlying(EntityType<?> entityType) {
@@ -136,14 +145,14 @@ public class FlyingEntityConfig {
 
     public static boolean isBlockBlacklisted(BlockState state) {
         ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock());
-        return blockBlacklist.contains(blockId.toString());
+        return blockBlacklist.contains(blockId);
     }
 
     public static boolean isPlayerRidingAllowed() {
-        return PLAYER_RIDING_ALLOWED.get();
+        return playerRidingAllowed;
     }
 
     public static boolean isBlockRidingAllowed() {
-        return BLOCK_RIDING_ALLOWED.get();
+        return blockRidingAllowed;
     }
 }

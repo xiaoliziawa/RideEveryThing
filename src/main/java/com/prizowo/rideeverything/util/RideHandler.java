@@ -42,7 +42,6 @@ public class RideHandler {
     public static void handleDismountKey() {
         Player player = Minecraft.getInstance().player;
         if (player == null) return;
-        
         if (player.isPassenger()) {
             Entity vehicle = player.getVehicle();
             if (vehicle != null) {

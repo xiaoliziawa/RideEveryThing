@@ -36,6 +36,12 @@ public class NetworkHandler {
                 MountControlPacket.STREAM_CODEC,
                 MountControlPacket::handle
         );
+
+        REGISTRAR.playToServer(
+                MountJumpPacket.TYPE,
+                MountJumpPacket.STREAM_CODEC,
+                MountJumpPacket::handle
+        );
         
         REGISTRAR.playToClient(
                 RideConfirmPacket.TYPE, 

@@ -22,9 +22,20 @@ import java.util.Map;
 
 @EventBusSubscriber(modid = "rideeverything")
 public class MountControlEvents {
-    private static final Map<Class<?>, Boolean> flyingEntityCache = new HashMap<>();
+    private static final Map<EntityType<?>, Boolean> flyingEntityCache = new HashMap<>();
+    private static final Map<Integer, CachedMobData> mobDataCache = new HashMap<>();
 
     private static final double SPRINT_SPEED_MULTIPLIER = 1.3;
+    private static final float DEG_TO_RAD = (float) Math.PI / 180F;
+    private static final double FRICTION_RECALC_THRESHOLD = 0.5;
+
+    private static class CachedMobData {
+        float lastFriction = 0.91F;
+        BlockPos lastFrictionPos = BlockPos.ZERO;
+        float lastYaw = 0;
+        float cachedSinYaw = 0;
+        float cachedCosYaw = 0;
+    }
 
     private static boolean shouldSkipEntity(Mob mob, Player rider) {
         if (mob instanceof AbstractHorse) return true;
@@ -32,17 +43,14 @@ public class MountControlEvents {
         return controller != null && controller != rider;
     }
 
-    /**
-     * Suppress AI navigation for force-ridden mobs before their tick.
-     * Prevents the mob's pathfinding from fighting player controls.
-     */
     @SubscribeEvent
     public static void onEntityTick(EntityTickEvent.Pre event) {
-        if (!(event.getEntity() instanceof Mob mob)) return;
-        if (mob.level().isClientSide()) return;
+        Entity entity = event.getEntity();
+        if (entity.level().isClientSide()) return;
 
-        Entity passenger = mob.getFirstPassenger();
+        Entity passenger = entity.getFirstPassenger();
         if (!(passenger instanceof Player player)) return;
+        if (!(entity instanceof Mob mob)) return;
         if (shouldSkipEntity(mob, player)) return;
 
         mob.getNavigation().stop();
@@ -62,16 +70,16 @@ public class MountControlEvents {
         if (!(et instanceof Mob mob)) return;
         if (shouldSkipEntity(mob, player)) return;
 
-        float jumpPower = player.getPersistentData().getFloat("mounting_jumpPower");
-        boolean ascending = player.getPersistentData().getBoolean("mounting_ascending");
-        boolean descending = player.getPersistentData().getBoolean("mounting_descending");
-        float forward = player.getPersistentData().getFloat("mounting_forward");
-        float strafe = player.getPersistentData().getFloat("mounting_strafe");
-        boolean sprinting = player.getPersistentData().getBoolean("mounting_sprinting");
+        var nbt = player.getPersistentData();
+        float jumpPower = nbt.getFloat("mounting_jumpPower");
+        boolean ascending = nbt.getBoolean("mounting_ascending");
+        boolean descending = nbt.getBoolean("mounting_descending");
+        float forward = nbt.getFloat("mounting_forward");
+        float strafe = nbt.getFloat("mounting_strafe");
+        boolean sprinting = nbt.getBoolean("mounting_sprinting");
 
-        // Consume jumpPower (one-shot event from space release)
         if (jumpPower > 0) {
-            player.getPersistentData().putFloat("mounting_jumpPower", 0);
+            nbt.putFloat("mounting_jumpPower", 0);
         }
 
         boolean isFlying = isFlying(mob);
@@ -83,46 +91,40 @@ public class MountControlEvents {
         }
     }
 
-    /**
-     * Ground movement using vanilla horse physics:
-     * - AbstractHorse.tickRidden() for rotation sync
-     * - AbstractHorse.getRiddenInput() for input processing (50% strafe, 25% backward)
-     * - AbstractHorse.getRiddenSpeed() for speed
-     * - AbstractHorse.executeRidersJump() for charged jump
-     * - LivingEntity.travel() for acceleration/friction
-     */
     private static void handleGroundMobControl(Mob mob, Player player, float jumpPower, float forward, float strafe, boolean isSprinting) {
-        // 1. Rotation sync (AbstractHorse.tickRidden + getRiddenRotation)
-        mob.setYRot(player.getYRot());
-        mob.yRotO = mob.getYRot();
-        mob.setXRot(player.getXRot() * 0.5F);
-        mob.setYBodyRot(mob.getYRot());
-        mob.setYHeadRot(mob.getYRot());
+        int mobId = mob.getId();
+        CachedMobData cache = mobDataCache.computeIfAbsent(mobId, k -> new CachedMobData());
 
-        // 2. Input processing (AbstractHorse.getRiddenInput)
+        float yaw = player.getYRot();
+        mob.setYRot(yaw);
+        mob.yRotO = yaw;
+        mob.setXRot(player.getXRot() * 0.5F);
+        mob.setYBodyRot(yaw);
+        mob.setYHeadRot(yaw);
+
+        if (Math.abs(yaw - cache.lastYaw) > 1.0F) {
+            float yawRad = yaw * DEG_TO_RAD;
+            cache.cachedSinYaw = net.minecraft.util.Mth.sin(yawRad);
+            cache.cachedCosYaw = net.minecraft.util.Mth.cos(yawRad);
+            cache.lastYaw = yaw;
+        }
+
         float moveStrafe = strafe * 0.5F;
         float moveForward = forward;
         if (moveForward <= 0.0F) {
             moveForward *= 0.25F;
         }
 
-        // 3. Speed (AbstractHorse.getRiddenSpeed)
         float speed = (float) mob.getAttributeValue(Attributes.MOVEMENT_SPEED);
         if (isSprinting && moveForward > 0) {
             speed *= SPRINT_SPEED_MULTIPLIER;
         }
 
-        // 4. Charged jump (AbstractHorse.executeRidersJump)
         if (jumpPower > 0 && mob.onGround()) {
-            // getJumpPower(multiplier) = JUMP_STRENGTH * multiplier * blockJumpFactor + jumpBoostPower
-            // Generic mobs don't have JUMP_STRENGTH attribute, use a fixed base
             double baseJumpStrength = 0.7;
-
-            // getBlockJumpFactor is protected, replicate logic
             float blockJumpFactor = getBlockJumpFactor(mob);
             double jumpY = baseJumpStrength * (double) jumpPower * (double) blockJumpFactor;
 
-            // Jump Boost potion effect
             var jumpEffect = mob.getEffect(MobEffects.JUMP);
             if (jumpEffect != null) {
                 jumpY += (double) ((float) (jumpEffect.getAmplifier() + 1) * 0.1F);
@@ -132,14 +134,12 @@ public class MountControlEvents {
             mob.setDeltaMovement(currentVel.x, jumpY, currentVel.z);
             mob.hasImpulse = true;
 
-            // Forward boost on jump (vanilla horse: -0.4F * sin/cos * jumpPower)
             if (moveForward > 0) {
-                float yawRad = mob.getYRot() * ((float) Math.PI / 180F);
                 mob.setDeltaMovement(
                     mob.getDeltaMovement().add(
-                        (double) (-0.4F * net.minecraft.util.Mth.sin(yawRad) * jumpPower),
+                        (double) (-0.4F * cache.cachedSinYaw * jumpPower),
                         0.0,
-                        (double) (0.4F * net.minecraft.util.Mth.cos(yawRad) * jumpPower)
+                        (double) (0.4F * cache.cachedCosYaw * jumpPower)
                     )
                 );
             }
@@ -147,11 +147,18 @@ public class MountControlEvents {
 
         mob.setNoGravity(false);
 
-        // 5. Acceleration-based movement (LivingEntity.travel math)
         if (moveForward != 0 || moveStrafe != 0) {
             Level level = mob.level();
             BlockPos belowPos = mob.getBlockPosBelowThatAffectsMyMovement();
-            float blockFriction = level.getBlockState(belowPos).getFriction(level, belowPos, mob);
+
+            float blockFriction;
+            if (cache.lastFrictionPos.distSqr(belowPos) > FRICTION_RECALC_THRESHOLD) {
+                blockFriction = level.getBlockState(belowPos).getFriction(level, belowPos, mob);
+                cache.lastFriction = blockFriction;
+                cache.lastFrictionPos = belowPos;
+            } else {
+                blockFriction = cache.lastFriction;
+            }
 
             float accelFactor;
             if (mob.onGround()) {
@@ -160,7 +167,7 @@ public class MountControlEvents {
                 accelFactor = 0.02F;
             }
 
-            Vec3 inputVec = getInputVector(new Vec3(moveStrafe, 0, moveForward), accelFactor, mob.getYRot());
+            Vec3 inputVec = getInputVector(moveStrafe, moveForward, accelFactor, cache.cachedSinYaw, cache.cachedCosYaw);
             Vec3 currentVel = mob.getDeltaMovement();
 
             mob.setDeltaMovement(currentVel.x + inputVec.x, currentVel.y, currentVel.z + inputVec.z);
@@ -168,38 +175,51 @@ public class MountControlEvents {
         }
     }
 
-    /**
-     * Replicate Entity.getBlockJumpFactor() which is protected.
-     */
     private static float getBlockJumpFactor(Mob mob) {
-        float f = mob.level().getBlockState(mob.blockPosition()).getBlock().getJumpFactor();
-        float f1 = mob.level().getBlockState(mob.getBlockPosBelowThatAffectsMyMovement()).getBlock().getJumpFactor();
+        Level level = mob.level();
+        float f = level.getBlockState(mob.blockPosition()).getBlock().getJumpFactor();
+        float f1 = level.getBlockState(mob.getBlockPosBelowThatAffectsMyMovement()).getBlock().getJumpFactor();
         return (double) f == 1.0 ? f1 : f;
     }
 
-    /**
-     * Entity.getInputVector: converts (strafe, up, forward) + acceleration + yaw into world-space velocity.
-     */
-    private static Vec3 getInputVector(Vec3 relative, float motionScaler, float facing) {
-        double d0 = relative.lengthSqr();
-        if (d0 < 1.0E-7) {
+    private static Vec3 getInputVector(float strafe, float forward, float motionScaler, float sinYaw, float cosYaw) {
+        float lengthSq = strafe * strafe + forward * forward;
+        if (lengthSq < 1.0E-7F) {
             return Vec3.ZERO;
         }
-        Vec3 vec3 = (d0 > 1.0 ? relative.normalize() : relative).scale(motionScaler);
-        float sinYaw = net.minecraft.util.Mth.sin(facing * ((float) Math.PI / 180F));
-        float cosYaw = net.minecraft.util.Mth.cos(facing * ((float) Math.PI / 180F));
+
+        if (lengthSq > 1.0F) {
+            float invLength = (float) net.minecraft.util.Mth.fastInvSqrt(lengthSq);
+            strafe *= invLength;
+            forward *= invLength;
+        }
+
+        float scaledStrafe = strafe * motionScaler;
+        float scaledForward = forward * motionScaler;
+
         return new Vec3(
-            vec3.x * (double) cosYaw - vec3.z * (double) sinYaw,
-            vec3.y,
-            vec3.z * (double) cosYaw + vec3.x * (double) sinYaw
+            scaledStrafe * (double) cosYaw - scaledForward * (double) sinYaw,
+            0,
+            scaledForward * (double) cosYaw + scaledStrafe * (double) sinYaw
         );
     }
 
     private static void handleFlyingMobControl(Mob mob, Player player, boolean ascending, boolean descending, float forward, float strafe, boolean isSprinting) {
-        mob.setYRot(player.getYRot());
-        mob.yRotO = mob.getYRot();
-        mob.setYBodyRot(mob.getYRot());
-        mob.setYHeadRot(mob.getYRot());
+        int mobId = mob.getId();
+        CachedMobData cache = mobDataCache.computeIfAbsent(mobId, k -> new CachedMobData());
+
+        float yaw = player.getYRot();
+        mob.setYRot(yaw);
+        mob.yRotO = yaw;
+        mob.setYBodyRot(yaw);
+        mob.setYHeadRot(yaw);
+
+        if (Math.abs(yaw - cache.lastYaw) > 1.0F) {
+            double rad = Math.toRadians(yaw);
+            cache.cachedSinYaw = (float) Math.sin(rad);
+            cache.cachedCosYaw = (float) Math.cos(rad);
+            cache.lastYaw = yaw;
+        }
 
         Vec3 currentVelocity = mob.getDeltaMovement();
 
@@ -217,17 +237,12 @@ public class MountControlEvents {
             horizontalSpeed *= SPRINT_SPEED_MULTIPLIER;
         }
 
-        float yaw = player.getYRot();
-        double rad = Math.toRadians(yaw);
-
         double motionX;
         double motionZ;
 
         if (forward != 0 || strafe != 0) {
-            motionX = -Math.sin(rad) * forward * horizontalSpeed;
-            motionZ = Math.cos(rad) * forward * horizontalSpeed;
-            motionX += Math.cos(rad) * strafe * horizontalSpeed;
-            motionZ += Math.sin(rad) * strafe * horizontalSpeed;
+            motionX = -cache.cachedSinYaw * forward * horizontalSpeed + cache.cachedCosYaw * strafe * horizontalSpeed;
+            motionZ = cache.cachedCosYaw * forward * horizontalSpeed + cache.cachedSinYaw * strafe * horizontalSpeed;
         } else {
             motionX = currentVelocity.x * 0.8;
             motionZ = currentVelocity.z * 0.8;
@@ -239,21 +254,20 @@ public class MountControlEvents {
     }
 
     private static boolean isFlying(Mob mob) {
-        Class<?> mobClass = mob.getClass();
-        if (flyingEntityCache.containsKey(mobClass)) {
-            return flyingEntityCache.get(mobClass);
+        EntityType<?> type = mob.getType();
+        if (flyingEntityCache.containsKey(type)) {
+            return flyingEntityCache.get(type);
         }
 
         boolean result = false;
-        EntityType<?> type = mob.getType();
 
         if (FlyingEntityConfig.isExcludedFromFlying(type)) {
-            flyingEntityCache.put(mobClass, false);
+            flyingEntityCache.put(type, false);
             return false;
         }
 
         if (FlyingEntityConfig.isConfiguredAsFlying(type)) {
-            flyingEntityCache.put(mobClass, true);
+            flyingEntityCache.put(type, true);
             return true;
         }
 
@@ -270,7 +284,11 @@ public class MountControlEvents {
             result = true;
         }
 
-        flyingEntityCache.put(mobClass, result);
+        flyingEntityCache.put(type, result);
         return result;
+    }
+
+    public static void clearCache(int mobId) {
+        mobDataCache.remove(mobId);
     }
 }

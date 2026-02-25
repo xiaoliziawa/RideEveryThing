@@ -51,12 +51,9 @@ public record RideConfirmPacket(boolean isBlockSeat, int riderId, int targetId, 
     
     public static void handle(RideConfirmPacket packet, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
-            // 客户端处理乘坐确认
             if (Minecraft.getInstance().level != null) {
                 if (packet.isBlockSeat()) {
-                    // 方块座位情况的处理，如有必要可添加特效或音效
                 } else {
-                    // 实体乘坐情况的处理
                     int riderId = packet.riderId();
                     int targetId = packet.targetId();
                     boolean mounting = packet.mounting();
