@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__sequential-thinking__sequentialthinking",
+      "mcp__ide__getDiagnostics",
+      "Bash(head:*)",
+      "Bash(find:*)",
+      "Bash(tail:*)"
+    ]
+  }
+}
