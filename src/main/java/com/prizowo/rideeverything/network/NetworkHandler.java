@@ -17,7 +17,7 @@ public class NetworkHandler {
     
     @SubscribeEvent
     public static void register(RegisterPayloadHandlersEvent event) {
-        REGISTRAR = event.registrar("rideeverything").versioned("1.0.0");
+        REGISTRAR = event.registrar("rideeverything").versioned("2.0.0");
 
         REGISTRAR.playToServer(
                 RidePacket.TYPE,
