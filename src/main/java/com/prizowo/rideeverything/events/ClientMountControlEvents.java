@@ -7,7 +7,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -30,6 +29,12 @@ public class ClientMountControlEvents {
     private static int jumpChargeTicks = 0;
     private static boolean wasJumpDown = false;
 
+    private static int modVehicleId = -1;
+
+    public static void onModRideConfirmed(int vehicleId, boolean mounting) {
+        modVehicleId = mounting ? vehicleId : -1;
+    }
+
     private static final float JUMP_SCALE_THRESHOLD = 0.9F;
     private static final float JUMP_POWER_BASE = 0.4F;
     private static final float JUMP_POWER_SCALE = 0.4F / JUMP_SCALE_THRESHOLD;
@@ -39,7 +44,7 @@ public class ClientMountControlEvents {
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
 
-        if (player != null && player.isPassenger() && player.getVehicle() instanceof Mob mob && !(mob instanceof AbstractHorse)) {
+        if (player != null && player.isPassenger() && player.getVehicle() instanceof Mob mob && mob.getId() == modVehicleId) {
             if (mob.getControllingPassenger() != null && mob.getControllingPassenger() != player) {
                 resetState();
                 return;
@@ -96,6 +101,9 @@ public class ClientMountControlEvents {
                 lastSprinting = isSprinting;
             }
         } else {
+            if (player == null || !player.isPassenger()) {
+                modVehicleId = -1;
+            }
             resetState();
         }
     }

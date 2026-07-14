@@ -1,5 +1,6 @@
 package com.prizowo.rideeverything.network;
 
+import com.prizowo.rideeverything.events.ClientMountControlEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -60,8 +61,11 @@ public record RideConfirmPacket(boolean isBlockSeat, int riderId, int targetId, 
                     
                     Entity rider = Minecraft.getInstance().level.getEntity(riderId);
                     Entity target = Minecraft.getInstance().level.getEntity(targetId);
-                    
+
                     if (rider != null && target != null) {
+                        if (rider == Minecraft.getInstance().player) {
+                            ClientMountControlEvents.onModRideConfirmed(target.getId(), mounting);
+                        }
                         if (mounting) {
                             if (!rider.isPassenger() || rider.getVehicle() != target) {
                                 rider.startRiding(target, true);
