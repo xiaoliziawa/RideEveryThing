@@ -5,19 +5,19 @@ import com.prizowo.rideeverything.util.ModRideTracker;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.animal.horse.AbstractHorse;
+import net.minecraft.world.entity.animal.equine.AbstractHorse;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.NotNull;
 
 public record RidePacket(int entityId, boolean isMount) implements CustomPacketPayload {
-    public static final ResourceLocation ID = ResourceLocation.parse("rideeverything:ride_packet");
+    public static final Identifier ID = Identifier.parse("rideeverything:ride_packet");
     public static final Type<RidePacket> TYPE = new Type<>(ID);
 
     public static final StreamCodec<FriendlyByteBuf, RidePacket> STREAM_CODEC = StreamCodec.of(
@@ -31,7 +31,7 @@ public record RidePacket(int entityId, boolean isMount) implements CustomPacketP
     public static void handle(RidePacket packet, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (ctx.player() instanceof ServerPlayer player) {
-                ServerLevel level = player.serverLevel();
+                ServerLevel level = player.level();
 
                 Entity target = level.getEntity(packet.entityId());
                 if (target != null && !(target instanceof AbstractHorse)) {
@@ -45,7 +45,7 @@ public record RidePacket(int entityId, boolean isMount) implements CustomPacketP
                         return;
                     }
                     if (packet.isMount()) {
-                        boolean success = player.startRiding(target, true);
+                        boolean success = player.startRiding(target, true, true);
                         if (success) {
                             ModRideTracker.markRide(player, target);
                             RideConfirmPacket confirmPacket = new RideConfirmPacket(player.getId(), packet.entityId(), true);

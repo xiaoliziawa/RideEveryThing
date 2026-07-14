@@ -11,7 +11,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 @EventBusSubscriber(modid = "rideeverything", value = Dist.CLIENT)
 public class ClientMountControlEvents {
@@ -80,7 +80,7 @@ public class ClientMountControlEvents {
             } else if (wasJumpDown) {
                 float jumpPower = calculateJumpPower(jumpChargeTicks);
                 if (jumpPower > 0) {
-                    PacketDistributor.sendToServer(new MountJumpPacket(jumpPower));
+                    ClientPacketDistributor.sendToServer(new MountJumpPacket(jumpPower));
                 }
                 jumpChargeTicks = 0;
             }
@@ -90,7 +90,7 @@ public class ClientMountControlEvents {
                 forward != lastForward || strafe != lastStrafe ||
                 isSprinting != lastSprinting) {
 
-                PacketDistributor.sendToServer(
+                ClientPacketDistributor.sendToServer(
                     new MountControlPacket(ascending, descending, isSprinting, forward, strafe)
                 );
 

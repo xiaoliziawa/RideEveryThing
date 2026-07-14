@@ -8,11 +8,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.core.BlockPos;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
-@OnlyIn(Dist.CLIENT)
 public class RideHandler {
     public static void handleRideKey() {
         Minecraft mc = Minecraft.getInstance();
@@ -26,14 +23,14 @@ public class RideHandler {
                 if (targetPlayer == player) return;
             }
             
-            PacketDistributor.sendToServer(new RidePacket(target.getId(), true));
+            ClientPacketDistributor.sendToServer(new RidePacket(target.getId(), true));
         } else {
             HitResult hit = mc.hitResult;
             if (hit != null && hit.getType() == HitResult.Type.BLOCK) {
                 BlockHitResult blockHit = (BlockHitResult) hit;
                 BlockPos pos = blockHit.getBlockPos();
                 
-                PacketDistributor.sendToServer(new CreateBlockSeatPacket(pos));
+                ClientPacketDistributor.sendToServer(new CreateBlockSeatPacket(pos));
             }
         }
     }
@@ -44,7 +41,7 @@ public class RideHandler {
         if (player.isPassenger()) {
             Entity vehicle = player.getVehicle();
             if (vehicle != null) {
-                PacketDistributor.sendToServer(new RidePacket(vehicle.getId(), false));
+                ClientPacketDistributor.sendToServer(new RidePacket(vehicle.getId(), false));
             }
         }
     }

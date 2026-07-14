@@ -1,13 +1,16 @@
 package com.prizowo.rideeverything.entity;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import net.minecraft.world.level.block.StairBlock;
@@ -23,7 +26,11 @@ public class BlockSeatEntity extends Entity {
         super(type, level);
         this.noPhysics = true;
         this.setInvisible(true);
-        this.noCulling = true;
+    }
+
+    @Override
+    public boolean hurtServer(@NotNull ServerLevel level, @NotNull DamageSource source, float damage) {
+        return false;
     }
 
     public void setAttachedBlock(BlockPos pos) {
@@ -35,21 +42,20 @@ public class BlockSeatEntity extends Entity {
     }
 
     @Override
-    protected void readAdditionalSaveData(@NotNull CompoundTag tag) {
-        if (tag.contains("AttachedBlockX")) {
-            int x = tag.getInt("AttachedBlockX");
-            int y = tag.getInt("AttachedBlockY");
-            int z = tag.getInt("AttachedBlockZ");
+    protected void readAdditionalSaveData(@NotNull ValueInput input) {
+        input.getInt("AttachedBlockX").ifPresent(x -> {
+            int y = input.getIntOr("AttachedBlockY", 0);
+            int z = input.getIntOr("AttachedBlockZ", 0);
             this.attachedBlock = new BlockPos(x, y, z);
-        }
+        });
     }
 
     @Override
-    protected void addAdditionalSaveData(@NotNull CompoundTag tag) {
+    protected void addAdditionalSaveData(@NotNull ValueOutput output) {
         if (attachedBlock != null) {
-            tag.putInt("AttachedBlockX", attachedBlock.getX());
-            tag.putInt("AttachedBlockY", attachedBlock.getY());
-            tag.putInt("AttachedBlockZ", attachedBlock.getZ());
+            output.putInt("AttachedBlockX", attachedBlock.getX());
+            output.putInt("AttachedBlockY", attachedBlock.getY());
+            output.putInt("AttachedBlockZ", attachedBlock.getZ());
         }
     }
     

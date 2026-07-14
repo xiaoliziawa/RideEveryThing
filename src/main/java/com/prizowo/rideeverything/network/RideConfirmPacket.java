@@ -6,13 +6,13 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 public record RideConfirmPacket(boolean isBlockSeat, int riderId, int targetId, boolean mounting, BlockPos blockPos) implements CustomPacketPayload {
-    public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath("rideeverything", "ride_confirm");
+    public static final Identifier ID = Identifier.fromNamespaceAndPath("rideeverything", "ride_confirm");
     public static final Type<RideConfirmPacket> TYPE = new Type<>(ID);
     
     public static final StreamCodec<FriendlyByteBuf, RideConfirmPacket> STREAM_CODEC = StreamCodec.of(
@@ -68,7 +68,7 @@ public record RideConfirmPacket(boolean isBlockSeat, int riderId, int targetId, 
                         }
                         if (mounting) {
                             if (!rider.isPassenger() || rider.getVehicle() != target) {
-                                rider.startRiding(target, true);
+                                rider.startRiding(target, true, true);
                             }
                         } else {
                             if (rider.isPassenger() && rider.getVehicle() == target) {

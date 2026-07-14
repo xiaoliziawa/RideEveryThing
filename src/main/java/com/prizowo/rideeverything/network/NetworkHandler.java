@@ -1,56 +1,45 @@
 package com.prizowo.rideeverything.network;
 
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
-@EventBusSubscriber(modid = "rideeverything", bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = "rideeverything")
 public class NetworkHandler {
-    public static final NetworkHandler INSTANCE = new NetworkHandler();
-    private static PayloadRegistrar REGISTRAR;
-    
-    private NetworkHandler() {
-    }
-    
+
     @SubscribeEvent
     public static void register(RegisterPayloadHandlersEvent event) {
-        REGISTRAR = event.registrar("rideeverything").versioned("3.0.0");
+        PayloadRegistrar registrar = event.registrar("rideeverything").versioned("3.0.0");
 
-        REGISTRAR.playToServer(
+        registrar.playToServer(
                 RidePacket.TYPE,
                 RidePacket.STREAM_CODEC,
                 RidePacket::handle
         );
-        
-        REGISTRAR.playToServer(
+
+        registrar.playToServer(
                 CreateBlockSeatPacket.TYPE,
                 CreateBlockSeatPacket.STREAM_CODEC,
                 CreateBlockSeatPacket::handle
         );
-        
-        REGISTRAR.playToServer(
+
+        registrar.playToServer(
                 MountControlPacket.TYPE,
                 MountControlPacket.STREAM_CODEC,
                 MountControlPacket::handle
         );
 
-        REGISTRAR.playToServer(
+        registrar.playToServer(
                 MountJumpPacket.TYPE,
                 MountJumpPacket.STREAM_CODEC,
                 MountJumpPacket::handle
         );
-        
-        REGISTRAR.playToClient(
-                RideConfirmPacket.TYPE, 
+
+        registrar.playToClient(
+                RideConfirmPacket.TYPE,
                 RideConfirmPacket.STREAM_CODEC,
                 RideConfirmPacket::handle
         );
-    }
-    
-    public void sendToServer(CustomPacketPayload payload) {
-        PacketDistributor.sendToServer(payload);
     }
 }

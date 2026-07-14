@@ -73,12 +73,12 @@ public class MountControlEvents {
         if (shouldSkipEntity(mob, player)) return;
 
         var nbt = player.getPersistentData();
-        float jumpPower = nbt.getFloat("mounting_jumpPower");
-        boolean ascending = nbt.getBoolean("mounting_ascending");
-        boolean descending = nbt.getBoolean("mounting_descending");
-        float forward = nbt.getFloat("mounting_forward");
-        float strafe = nbt.getFloat("mounting_strafe");
-        boolean sprinting = nbt.getBoolean("mounting_sprinting");
+        float jumpPower = nbt.getFloatOr("mounting_jumpPower", 0);
+        boolean ascending = nbt.getBooleanOr("mounting_ascending", false);
+        boolean descending = nbt.getBooleanOr("mounting_descending", false);
+        float forward = nbt.getFloatOr("mounting_forward", 0);
+        float strafe = nbt.getFloatOr("mounting_strafe", 0);
+        boolean sprinting = nbt.getBooleanOr("mounting_sprinting", false);
 
         if (jumpPower > 0) {
             nbt.putFloat("mounting_jumpPower", 0);
@@ -127,14 +127,14 @@ public class MountControlEvents {
             float blockJumpFactor = getBlockJumpFactor(mob);
             double jumpY = baseJumpStrength * (double) jumpPower * (double) blockJumpFactor;
 
-            var jumpEffect = mob.getEffect(MobEffects.JUMP);
+            var jumpEffect = mob.getEffect(MobEffects.JUMP_BOOST);
             if (jumpEffect != null) {
                 jumpY += (double) ((float) (jumpEffect.getAmplifier() + 1) * 0.1F);
             }
 
             Vec3 currentVel = mob.getDeltaMovement();
             mob.setDeltaMovement(currentVel.x, jumpY, currentVel.z);
-            mob.hasImpulse = true;
+            mob.needsSync = true;
 
             if (moveForward > 0) {
                 mob.setDeltaMovement(
@@ -173,7 +173,7 @@ public class MountControlEvents {
             Vec3 currentVel = mob.getDeltaMovement();
 
             mob.setDeltaMovement(currentVel.x + inputVec.x, currentVel.y, currentVel.z + inputVec.z);
-            mob.hasImpulse = true;
+            mob.needsSync = true;
         }
     }
 
@@ -251,7 +251,7 @@ public class MountControlEvents {
         }
 
         mob.setDeltaMovement(new Vec3(motionX, verticalMotion, motionZ));
-        mob.hasImpulse = true;
+        mob.needsSync = true;
         mob.setNoGravity(true);
     }
 

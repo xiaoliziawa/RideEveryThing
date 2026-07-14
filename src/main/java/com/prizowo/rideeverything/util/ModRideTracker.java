@@ -1,6 +1,5 @@
 package com.prizowo.rideeverything.util;
 
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
@@ -17,8 +16,7 @@ public class ModRideTracker {
     }
 
     public static boolean isModRide(Player player, Entity vehicle) {
-        CompoundTag data = player.getPersistentData();
-        return data.contains(VEHICLE_ID_TAG) && data.getInt(VEHICLE_ID_TAG) == vehicle.getId();
+        return player.getPersistentData().getIntOr(VEHICLE_ID_TAG, -1) == vehicle.getId();
     }
 
     public static boolean isControlledModRide(Player rider, Mob mob) {

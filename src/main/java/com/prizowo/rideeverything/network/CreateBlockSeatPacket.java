@@ -7,7 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -23,7 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 public record CreateBlockSeatPacket(BlockPos pos) implements CustomPacketPayload {
-    public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath("rideeverything", "create_block_seat");
+    public static final Identifier ID = Identifier.fromNamespaceAndPath("rideeverything", "create_block_seat");
     public static final Type<CreateBlockSeatPacket> TYPE = new Type<>(ID);
 
     public static final StreamCodec<FriendlyByteBuf, CreateBlockSeatPacket> STREAM_CODEC = StreamCodec.of(
@@ -34,7 +34,7 @@ public record CreateBlockSeatPacket(BlockPos pos) implements CustomPacketPayload
     public static void handle(CreateBlockSeatPacket packet, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (ctx.player() instanceof ServerPlayer player) {
-                ServerLevel level = player.serverLevel();
+                ServerLevel level = player.level();
                 BlockPos pos = packet.pos();
 
                 if (!FlyingEntityConfig.isBlockRidingAllowed()) {
@@ -76,7 +76,7 @@ public record CreateBlockSeatPacket(BlockPos pos) implements CustomPacketPayload
                 seat.setAttachedBlock(pos);
 
                 if (level.addFreshEntity(seat)) {
-                    player.startRiding(seat, true);
+                    player.startRiding(seat, true, true);
                 }
             }
         });

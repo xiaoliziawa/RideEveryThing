@@ -1,7 +1,7 @@
 package com.prizowo.rideeverything.util;
 
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -16,7 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@EventBusSubscriber(modid = "rideeverything", bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = "rideeverything")
 public class FlyingEntityConfig {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
     public static final ModConfigSpec SPEC;
@@ -31,7 +31,7 @@ public class FlyingEntityConfig {
     private static final Set<EntityType<?>> additionalFlyingEntities = new HashSet<>();
     private static final Set<EntityType<?>> excludedFlyingEntities = new HashSet<>();
     private static final Set<EntityType<?>> entityBlacklist = new HashSet<>();
-    private static final Set<ResourceLocation> blockBlacklist = new HashSet<>();
+    private static final Set<Identifier> blockBlacklist = new HashSet<>();
 
     private static boolean playerRidingAllowed = true;
     private static boolean blockRidingAllowed = true;
@@ -95,34 +95,37 @@ public class FlyingEntityConfig {
 
         for (String entityStr : ADDITIONAL_FLYING_ENTITIES.get()) {
             try {
-                ResourceLocation entityId = ResourceLocation.parse(entityStr);
-                EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(entityId);
-                additionalFlyingEntities.add(entityType);
+                EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.parse(entityStr));
+                if (entityType != null) {
+                    additionalFlyingEntities.add(entityType);
+                }
             } catch (Exception e) {
             }
         }
 
         for (String entityStr : EXCLUDED_FLYING_ENTITIES.get()) {
             try {
-                ResourceLocation entityId = ResourceLocation.parse(entityStr);
-                EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(entityId);
-                excludedFlyingEntities.add(entityType);
+                EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.parse(entityStr));
+                if (entityType != null) {
+                    excludedFlyingEntities.add(entityType);
+                }
             } catch (Exception e) {
             }
         }
 
         for (String entityStr : ENTITY_BLACKLIST.get()) {
             try {
-                ResourceLocation entityId = ResourceLocation.parse(entityStr);
-                EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(entityId);
-                entityBlacklist.add(entityType);
+                EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.parse(entityStr));
+                if (entityType != null) {
+                    entityBlacklist.add(entityType);
+                }
             } catch (Exception e) {
             }
         }
 
         for (String blockStr : BLOCK_BLACKLIST.get()) {
             try {
-                blockBlacklist.add(ResourceLocation.parse(blockStr));
+                blockBlacklist.add(Identifier.parse(blockStr));
             } catch (Exception e) {
             }
         }
@@ -144,7 +147,7 @@ public class FlyingEntityConfig {
     }
 
     public static boolean isBlockBlacklisted(BlockState state) {
-        ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock());
+        Identifier blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock());
         return blockBlacklist.contains(blockId);
     }
 
