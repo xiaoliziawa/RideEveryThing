@@ -1,10 +1,10 @@
 package com.prizowo.rideeverything.network;
 
+import com.prizowo.rideeverything.util.ModRideTracker;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
@@ -45,7 +45,7 @@ public class MountControlPacket {
             if (player != null && player.isPassenger()) {
                 Entity vehicle = player.getVehicle();
                 if (vehicle instanceof Mob mob) {
-                    if (mob instanceof AbstractHorse) return;
+                    if (!ModRideTracker.isModRide(player, mob)) return;
                     if (mob.getControllingPassenger() != null && mob.getControllingPassenger() != player) return;
                     player.getPersistentData().putFloat("mounting_jumpPower", packet.jumpPower);
                     player.getPersistentData().putBoolean("mounting_ascending", packet.ascending);

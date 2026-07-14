@@ -1,6 +1,7 @@
 package com.prizowo.rideeverything.events;
 
 import com.prizowo.rideeverything.util.FlyingEntityConfig;
+import com.prizowo.rideeverything.util.ModRideTracker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -8,7 +9,6 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.FlyingAnimal;
-import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -27,7 +27,7 @@ public class MountControlEvents {
     private static final double SPRINT_SPEED_MULTIPLIER = 1.3;
 
     private static boolean shouldSkipEntity(Mob mob, Player rider) {
-        if (mob instanceof AbstractHorse) return true;
+        if (!ModRideTracker.isModRide(rider, mob)) return true;
         Entity controller = mob.getControllingPassenger();
         return controller != null && controller != rider;
     }
@@ -51,7 +51,10 @@ public class MountControlEvents {
         if (event.phase != TickEvent.Phase.END) return;
         Player player = event.player;
         if (player.level().isClientSide()) return;
-        if (!player.isPassenger()) return;
+        if (!player.isPassenger()) {
+            ModRideTracker.clearRide(player);
+            return;
+        }
         Entity et = player.getVehicle();
         if (!(et instanceof Mob mob)) return;
         if (shouldSkipEntity(mob, player)) return;
