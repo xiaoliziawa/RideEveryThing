@@ -45,6 +45,9 @@ public record RidePacket(int entityId, boolean isMount) implements CustomPacketP
                         return;
                     }
                     if (packet.isMount()) {
+                        if (target.isVehicle()) {
+                            return;
+                        }
                         boolean success = player.startRiding(target, true, true);
                         if (success) {
                             ModRideTracker.markRide(player, target);
